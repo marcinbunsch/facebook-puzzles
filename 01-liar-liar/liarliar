@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby
+
+# For a great visual explanation, go to:
+# http://www.kelvinjiang.com/2010/09/facebook-puzzles-and-liar-liar.html
+#
+exit if ARGV.size == 0 or !File.exists?(ARGV[0])
+input = File.open(ARGV[0], 'r')
+count = input.readline.chomp.to_i
+
+# We use a class for storing member objects because it's nice and we can
+class Member
+  attr_accessor :name, :liar, :processed, :accusing
+  def initialize(name, liar = nil, accusing = [])
+    @name, @liar, @accusing = name, liar, accusing
+  end
+  # Ruby's nice method naming FTW
+  def liar?; self.liar == true; end
+end
+
+# Parse input
+members = {}
+queue   = []
+while (line = input.readline.chomp rescue false)
+  name, count = line.split(/\s+/)
+  queue.push(members[name] ||= Member.new(name))
+  count.to_i.times {
+    members[name].accusing.push input.readline.chomp
+  }
+end
+
+# Locate liars
+liars, trues = 0, 0
+# Assume first member in queue is not a liar
+queue.last.liar = false
+
+while member = queue.pop
+  next if member.processed
+  member.accusing.each { |name|
+    accused = members[name]
+    # If the accuser is a liar, the accused is a trueteller
+    # If the trueteller is a liar, the accused is a liar
+    accused.liar = !member.liar?
+    queue.push accused
+  }
+  member.processed = true
+  member.liar? ? liars = liars + 1 : trues = trues + 1
+end
+
+# Output
+puts [liars, trues].sort.reverse.join(" ")
