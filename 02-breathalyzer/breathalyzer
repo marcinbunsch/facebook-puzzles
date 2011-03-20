@@ -1,0 +1,60 @@
+#!/usr/bin/env ruby
+
+# This is a naive implementation, mostly showing the Levenstein Distance algorithm
+# The performance of this code is super slow, as it searches the whole word list, 
+# running the Levenstein Distance algorithm on each word in the list
+
+# You can get the word list here: https://www.facebook.com/jobs_puzzles/twl06.txt
+
+dictionaryfile = File.exists?('/var/tmp/twl06.txt') ? '/var/tmp/twl06.txt' : File.join(File.dirname(__FILE__), 'twl06.txt')
+
+dictionary = []
+indexed_dictionary = {}
+f = File.open(dictionaryfile, "r")
+f.each_line do |line|
+  word = line.chomp.downcase
+  dictionary.push word
+end
+
+input = File.read(ARGV[0] || 'input')
+input = input.strip.split(/\s+/)
+
+def levenshtein_distance(string_a, string_b)
+
+  size_a = string_a.size
+  size_b = string_b.size
+  
+  columns = Array.new(size_a + 1).fill(0)
+  matrix  = Array.new(size_b + 1).collect { columns.dup }
+
+  (size_a + 1).times { |n| matrix[0][n] = n }
+  (size_b + 1).times { |n| matrix[n][0] = n }
+  
+  (1..size_b).each do |b|    
+    (1..size_a).each do |a|
+      matrix[b][a] = if string_a[a-1] == string_b[b-1]
+         matrix[b-1][a-1]
+      else
+        [
+          matrix[b-1][a] + 1,  # a deletion
+          matrix[b][a-1] + 1,  # an insertion
+          matrix[b-1][a-1] + 1 # a substitution
+        ].min
+      end
+    end
+  end
+  matrix[size_b][size_a]
+end
+
+shortestdistance = 0
+
+input.each do |word|
+  distance = nil
+  dictionary.each_with_index do |candidate, index|
+    new_distance = levenshtein_distance(word, candidate)
+    distance = new_distance if !distance or new_distance < distance
+  end
+  shortestdistance += distance
+end
+
+puts shortestdistance
